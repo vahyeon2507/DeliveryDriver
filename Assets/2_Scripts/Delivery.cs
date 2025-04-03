@@ -8,7 +8,7 @@ public class Delivery : MonoBehaviour
 
     [SerializeField] bool hasChicken = false;
     SpriteRenderer spriteRenderer;
-
+    
     private void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();

@@ -14,7 +14,7 @@ public class Driver : MonoBehaviour
         slowSpeed = moveSpeed * slowSpeedRatio;
         boostSpeed = moveSpeed * boostSpeedRatio;
     }
-        
+
     void Update()
     {
         float turnaAmount = Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime;
