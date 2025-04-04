@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using static UnityEditor.Searcher.SearcherWindow.Alignment;
 
@@ -8,16 +9,30 @@ public class Drift : MonoBehaviour
     [SerializeField] float maxSpeed = 10f;         // ÃÖ´ë ¼Óµµ Á¦ÇÑ
     [SerializeField] float driftFactor = 0.95f;    // ³·À»¼ö·Ï ´õ ¹Ì²ô·¯Áü
 
+    [SerializeField] float slowAcclerationRatio = 0.5f;
+    [SerializeField] float boostAcclerationRatio = 1.5f;
+
     [SerializeField] ParticleSystem smokeLeft;
     [SerializeField] ParticleSystem smokeRight;
+    [SerializeField] TrailRenderer leftTrail;
+    [SerializeField] TrailRenderer rigftTrail;
 
     Rigidbody2D rb;
     AudioSource audioSource;
+
+    float defaultAccleation;
+    float slowAccleation;
+    float boostAccleation;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         audioSource = rb.GetComponent<AudioSource>();
+
+        defaultAccleation = accleration;
+        slowAccleation = accleration * slowAcclerationRatio;
+        boostAccleation = accleration * boostAcclerationRatio;
+
     }
 
     void FixedUpdate()
@@ -42,6 +57,7 @@ public class Drift : MonoBehaviour
         float sidewayVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
 
         bool isDrifting = rb.linearVelocity.magnitude > 2f && Mathf.Abs(sidewayVelocity) > 1f;
+
         if (isDrifting)
         {
             if (!audioSource.isPlaying) audioSource.Play();
@@ -55,5 +71,28 @@ public class Drift : MonoBehaviour
             if (smokeLeft.isPlaying) smokeLeft.Stop();
             if (smokeRight.isPlaying) smokeRight.Stop();
         }
+
+        leftTrail.emitting = isDrifting;
+        rigftTrail.emitting = isDrifting;
+    }
+
+    private void OnTriggernEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Boost"))
+        {
+            accleration = boostAccleation;
+            Debug.Log("boost!!!!!!!");
+
+            Invoke(nameof(ResetAcceleration), 5f);
+        }    
+    }
+
+    void ResetAcceleration()
+    {
+        accleration = boostAccleation;
+    }
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        accleration = slowAccleation;
     }
 }
