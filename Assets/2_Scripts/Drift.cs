@@ -11,8 +11,9 @@ public class Drift : MonoBehaviour
 
     [SerializeField] float slowAcclerationRatio = 0.5f;
     [SerializeField] float boostAcclerationRatio = 1.5f;
+    [SerializeField] float speedTime = 3.0f;
 
-    [SerializeField] ParticleSystem smokeLeft;
+   [SerializeField] ParticleSystem smokeLeft;
     [SerializeField] ParticleSystem smokeRight;
     [SerializeField] TrailRenderer leftTrail;
     [SerializeField] TrailRenderer rigftTrail;
@@ -72,7 +73,8 @@ public class Drift : MonoBehaviour
             if (smokeRight.isPlaying) smokeRight.Stop();
         }
 
-        leftTrail.emitting = isDrifting;
+
+        leftTrail.emitting = isDrifting; 
         rigftTrail.emitting = isDrifting;
     }
 
@@ -94,5 +96,10 @@ public class Drift : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D collision)
     {
         accleration = slowAccleation;
+        Debug.Log("Slow !!! !! ! !! !!! ! !");
+
+        Invoke("ResetAcceleration", speedTime);
     }
+
+    
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class Delivery : MonoBehaviour
 {
@@ -7,6 +8,7 @@ public class Delivery : MonoBehaviour
     [SerializeField] float delay = 1.0f;
 
     [SerializeField] bool hasChicken = false;
+    public float Score = 1f;
     SpriteRenderer spriteRenderer;
     
     private void Start()
@@ -29,6 +31,8 @@ public class Delivery : MonoBehaviour
             Debug.Log("치킨 배달됨");
             hasChicken = false;
             spriteRenderer.color = noChickenColor;
+            Debug.Log("점수" + Score++);
+
         } 
     }
 }
