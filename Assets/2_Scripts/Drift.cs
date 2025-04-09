@@ -1,22 +1,27 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
+using UnityEngine.SceneManagement;
 
 public class Drift : MonoBehaviour
 {
-    [SerializeField] float accleration = 20f;      // ���� / ���� ���ӵ�
-    [SerializeField] float steering = 3f;          // ���� �ӵ�
-    [SerializeField] float maxSpeed = 10f;         // �ִ� �ӵ� ����
-    [SerializeField] float driftFactor = 0.95f;    // �������� �� �̲�����
+    [SerializeField] float accleration = 20f;      // 전진 / 후진 가속도
+    [SerializeField] float steering = 3f;          // 조향 속도
+    [SerializeField] float maxSpeed = 10f;         // 최대 속도 제한
+    [SerializeField] float driftFactor = 0.95f;    // 낮을수록 더 미끄러짐
 
     [SerializeField] float slowAcclerationRatio = 0.5f;
     [SerializeField] float boostAcclerationRatio = 1.5f;
-    [SerializeField] float speedTime = 3.0f;
+    [SerializeField] float speedTime = 0.5f;
+    [SerializeField] float boostMaxSpeed = 7f;    // 부스트 상태에서 최대 속도
+    [SerializeField] float boostDuration = 0.5f;     // 부스트 지속 시간
+    [SerializeField] float speedIgnoreDuration = 2f;  // 최대 속도 무시 시간
 
-   [SerializeField] ParticleSystem smokeLeft;
+    [SerializeField] ParticleSystem smokeLeft;
     [SerializeField] ParticleSystem smokeRight;
     [SerializeField] TrailRenderer leftTrail;
     [SerializeField] TrailRenderer rigftTrail;
+    [SerializeField] BoxCollider2D offHitBox;
 
     Rigidbody2D rb;
     AudioSource audioSource;
@@ -24,6 +29,13 @@ public class Drift : MonoBehaviour
     float defaultAccleation;
     float slowAccleation;
     float boostAccleation;
+    float defaultSteering;
+
+    private int groundContactCount = 0;
+    private float driftTimer = 0.0f;
+    private float boostTimer = 0.0f;
+    private float speedIgnoreTimer = 0.0f;
+    private float currentMaxSpeed;
 
     void Start()
     {
@@ -33,21 +45,52 @@ public class Drift : MonoBehaviour
         defaultAccleation = accleration;
         slowAccleation = accleration * slowAcclerationRatio;
         boostAccleation = accleration * boostAcclerationRatio;
+        defaultSteering = steering;
 
+        currentMaxSpeed = maxSpeed;
     }
 
     void FixedUpdate()
     {
         float speed = Vector2.Dot(rb.linearVelocity, transform.up);
-        if (speed < maxSpeed)
+
+        if (boostTimer > 0)
         {
-            rb.AddForce(transform.up * Input.GetAxis("Vertical") * accleration);
+            // 부스트 상태
+            boostTimer -= Time.fixedDeltaTime;
+            speedIgnoreTimer -= Time.fixedDeltaTime;
+
+            // 최대 속도 무시
+            if (speedIgnoreTimer > 0)
+            {
+                currentMaxSpeed = float.MaxValue;
+            }
+            else
+            {
+                currentMaxSpeed = boostMaxSpeed;
+            }
+
+            // W 키 입력 여부와 관계없이 앞으로 이동
+            rb.AddForce(transform.up * boostAccleation);
+        }
+        else
+        {
+            // 일반 상태
+            currentMaxSpeed = maxSpeed;
+            steering = defaultSteering;
+
+            // 전진 또는 후진 가속
+            if (speed < currentMaxSpeed)
+            {
+                rb.AddForce(transform.up * Input.GetAxis("Vertical") * accleration);
+            }
         }
 
-        float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
+        // 조향 및 회전
+        float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / currentMaxSpeed, 0.4f, 1f);
         rb.MoveRotation(rb.rotation - turnAmount);
 
-        //Drift
+        // Drift
         Vector2 forwardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
         Vector2 sideVelocity = transform.right * Vector2.Dot(rb.linearVelocity, transform.right);
         rb.linearVelocity = forwardVelocity + (sideVelocity * driftFactor);
@@ -59,47 +102,96 @@ public class Drift : MonoBehaviour
 
         bool isDrifting = rb.linearVelocity.magnitude > 2f && Mathf.Abs(sidewayVelocity) > 1f;
 
+        // Check for drifting
         if (isDrifting)
         {
+            driftTimer = 0.0f; // Reset the drift timer when drifting
             if (!audioSource.isPlaying) audioSource.Play();
             if (!smokeLeft.isPlaying) smokeLeft.Play();
             if (!smokeRight.isPlaying) smokeRight.Play();
         }
-
         else
         {
+            driftTimer += Time.deltaTime; // Increment the drift timer when not drifting
             if (audioSource.isPlaying) audioSource.Stop();
             if (smokeLeft.isPlaying) smokeLeft.Stop();
             if (smokeRight.isPlaying) smokeRight.Stop();
+
+            if (driftTimer >= 3.0f)
+            {
+                Debug.Log("Not drifting for too long! Restarting...");
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
         }
 
-
-        leftTrail.emitting = isDrifting; 
+        leftTrail.emitting = isDrifting;
         rigftTrail.emitting = isDrifting;
     }
 
-    private void OnTriggernEnter2D(Collision2D collision)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (collision.gameObject.CompareTag("Boost"))
+        if (other.CompareTag("Ground"))
         {
-            accleration = boostAccleation;
-            Debug.Log("boost!!!!!!!");
+            groundContactCount++;
+            Debug.Log($"Entered Ground. Contact count: {groundContactCount}");
+        }
+        if (other.gameObject.CompareTag("Boost"))
+        {
+            boostTimer = boostDuration;
+            speedIgnoreTimer = speedIgnoreDuration;
+            Debug.Log("Boost Activated!");
 
-            Invoke(nameof(ResetAcceleration), 5f);
-        }    
+            // Tree 콜라이더를 트리거로 설정
+            SetTreeColliders(true);
+
+            // 부스트 종료 후 트리거 복구
+            Invoke(nameof(ResetTreeColliders), boostDuration);
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Ground"))
+        {
+            groundContactCount--;
+            Debug.Log($"Exited Ground. Contact count: {groundContactCount}");
+
+            if (groundContactCount <= 0)
+            {
+                Debug.Log("Out of bounds! Restarting...");
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+        }
     }
 
     void ResetAcceleration()
     {
-        accleration = boostAccleation;
+        accleration = defaultAccleation;
     }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         accleration = slowAccleation;
-        Debug.Log("Slow !!! !! ! !! !!! ! !");
+        Debug.Log("Collision! Slowing down.");
 
         Invoke("ResetAcceleration", speedTime);
     }
 
-    
+    void SetTreeColliders(bool isTrigger)
+    {
+        GameObject[] trees = GameObject.FindGameObjectsWithTag("tree");
+        foreach (GameObject tree in trees)
+        {
+            CircleCollider2D collider = tree.GetComponent<CircleCollider2D>();
+            if (collider != null)
+            {
+                collider.isTrigger = isTrigger;
+            }
+        }
+    }
+
+    void ResetTreeColliders()
+    {
+        SetTreeColliders(false);
+    }
 }

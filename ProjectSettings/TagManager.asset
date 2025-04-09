@@ -7,11 +7,13 @@ TagManager:
   - Chicken
   - Customer
   - Boost
+  - tree
+  - Ground
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - tree
   - Water
   - UI
   - 
