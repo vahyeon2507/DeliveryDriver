@@ -23,6 +23,7 @@ public class Drift : MonoBehaviour
     [SerializeField] TrailRenderer rigftTrail;
     [SerializeField] BoxCollider2D offHitBox;
 
+
     Rigidbody2D rb;
     AudioSource audioSource;
 
@@ -119,7 +120,7 @@ public class Drift : MonoBehaviour
 
             if (driftTimer >= 3.0f)
             {
-                Debug.Log("Not drifting for too long! Restarting...");
+                Debug.Log("시간이 없어요! 드리프트를 안 한 시간이 3초가 지나면 안돼요!");
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
@@ -133,13 +134,12 @@ public class Drift : MonoBehaviour
         if (other.CompareTag("Ground"))
         {
             groundContactCount++;
-            Debug.Log($"Entered Ground. Contact count: {groundContactCount}");
         }
         if (other.gameObject.CompareTag("Boost"))
         {
             boostTimer = boostDuration;
             speedIgnoreTimer = speedIgnoreDuration;
-            Debug.Log("Boost Activated!");
+            Debug.Log("부스트!");
 
             // Tree 콜라이더를 트리거로 설정
             SetTreeColliders(true);
@@ -154,11 +154,11 @@ public class Drift : MonoBehaviour
         if (other.CompareTag("Ground"))
         {
             groundContactCount--;
-            Debug.Log($"Exited Ground. Contact count: {groundContactCount}");
+            Debug.Log($"도로를 벗어나지 마세요! 재시작까지: {groundContactCount}");
 
             if (groundContactCount <= 0)
             {
-                Debug.Log("Out of bounds! Restarting...");
+                Debug.Log("재시작합니다...");
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
@@ -172,19 +172,14 @@ public class Drift : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D collision)
     {
         accleration = slowAccleation;
-        Debug.Log("Collision! Slowing down.");
+        Debug.Log("느려짐!");
 
         Invoke("ResetAcceleration", speedTime);
 
-        accleration = slowAccleation;
-        Debug.Log("Collision! Slowing down.");
-
-        Invoke("ResetAcceleration", speedTime);
 
         // Rock 태그 충돌 처리
         if (collision.gameObject.CompareTag("Rock"))
         {
-            Debug.Log("Collision with Rock! Restarting...");
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
