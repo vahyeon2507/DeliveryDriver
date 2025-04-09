@@ -9,6 +9,7 @@ TagManager:
   - Boost
   - tree
   - Ground
+  - Rock
   layers:
   - Default
   - TransparentFX

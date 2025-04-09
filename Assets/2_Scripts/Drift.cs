@@ -175,6 +175,18 @@ public class Drift : MonoBehaviour
         Debug.Log("Collision! Slowing down.");
 
         Invoke("ResetAcceleration", speedTime);
+
+        accleration = slowAccleation;
+        Debug.Log("Collision! Slowing down.");
+
+        Invoke("ResetAcceleration", speedTime);
+
+        // Rock 태그 충돌 처리
+        if (collision.gameObject.CompareTag("Rock"))
+        {
+            Debug.Log("Collision with Rock! Restarting...");
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
     }
 
     void SetTreeColliders(bool isTrigger)
@@ -194,4 +206,6 @@ public class Drift : MonoBehaviour
     {
         SetTreeColliders(false);
     }
+
+
 }
