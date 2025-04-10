@@ -33,6 +33,11 @@ public class Delivery : MonoBehaviour
             spriteRenderer.color = noChickenColor;
             Debug.Log("점수" + Score++);
 
+            if (Score == 4)
+            {
+                Debug.Log("게임 클리어!");
+            }
+
         } 
     }
 }
